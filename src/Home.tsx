@@ -11,6 +11,7 @@ const getServicePlan = async () => {
     .where("sp_id")
     .eq("CHECKLIST_XXX_AM_2")
     .exec();
+  console.log("servicePlan", servicePlan);
   return servicePlan;
 };
 const getServiceObject = async () => {
@@ -30,8 +31,6 @@ const initDatabase = async (
   setCurrentServiceObject: any,
   setLoaded: any,
 ) => {
-  const db = await Database.get();
-  console.log(db);
   const servicePlan = await getServicePlan();
   if (servicePlan) {
     setCurrentServicePlan(servicePlan);

@@ -1,29 +1,9 @@
 import { RxGraphQLReplicationQueryBuilderResponse } from "rxdb";
-import { RxGraphQLReplicationState } from "rxdb/plugins/replication-graphql";
-import { $replications } from "./store/replications";
-
-async function setHeaders(replicationName: string) {
-  const replications: {
-    [key: string]: RxGraphQLReplicationState<unknown, unknown>;
-  } = $replications.get();
-
-  if (replications && replications[replicationName]) {
-    const replication = replications[replicationName];
-    const activeEmail = "m.rainer@webware.dev";
-    replication.setHeaders({
-      // authorization: `Bearer ${accessToken}`,
-      user: JSON.stringify({
-        email: activeEmail,
-      }),
-    });
-  }
-}
 
 export const pullServicePlan = (
   checkpoint: object | undefined,
   limit: number,
 ): RxGraphQLReplicationQueryBuilderResponse => {
-  setHeaders("service_plan");
   if (!checkpoint) {
     checkpoint = {
       sp_id: "",
@@ -36,11 +16,6 @@ export const pullServicePlan = (
             documents {
                 sp_id
                 description
-                resort_id
-                status_id
-                owner_id
-                ts_assigned
-                ts_completed
                 ts_updated
                 ts_inserted
                 deleted
@@ -64,18 +39,12 @@ export const pullServicePlan = (
 };
 
 export const pushServicePlan = (rows: unknown) => {
-  setHeaders("service_plan");
   const query = `
     mutation PushServicePlan($writeRows: [ServicePlanInputPushRow!]!) {
         pushServicePlan(writeRows: $writeRows) {
           deleted
           sp_id
           description
-          resort_id
-          status_id
-          owner_id
-          ts_assigned
-          ts_completed
           ts_updated
           ts_inserted
           sort_id
@@ -94,7 +63,6 @@ export const pushServicePlan = (rows: unknown) => {
 
 export const streamServicePlan =
   (): RxGraphQLReplicationQueryBuilderResponse => {
-    setHeaders("service_plan");
     const query = `
     subscription StreamServicePlan {
         streamServicePlan {
@@ -107,11 +75,6 @@ export const streamServicePlan =
                 deleted
                 sp_id
                 description
-                resort_id
-                status_id
-                owner_id
-                ts_assigned
-                ts_completed
                 ts_updated
                 ts_inserted
                 sort_id
@@ -130,7 +93,6 @@ export const pullServiceObject = (
   checkpoint: object | undefined,
   limit: number,
 ): RxGraphQLReplicationQueryBuilderResponse => {
-  setHeaders("service_object");
   if (!checkpoint) {
     checkpoint = {
       so_id: "",
@@ -144,27 +106,11 @@ export const pullServiceObject = (
             documents {
               deleted
               description
-              img_dev
-              img_mnt
-              latitude
-              longitude
-              machine_room_name
-              master_so_id
-              name
-              position_number
-              serial_number
               so_id
               sort_id
               sp_id
-              status_id
-              track_name
-              ts_completed
               ts_updated
-              type_id
-              type_name
               ts_inserted
-              vendor
-              build_year
             }
             checkpoint {
                 sp_id
@@ -187,33 +133,16 @@ export const pullServiceObject = (
 export const pushServiceObject = (
   rows: unknown,
 ): RxGraphQLReplicationQueryBuilderResponse => {
-  setHeaders("service_object");
   const query = `
     mutation PushServiceObject($writeRows: [ServiceObjectInputPushRow!]!) {
         pushServiceObject(writeRows: $writeRows) {
           deleted
           description
-          img_dev
-          img_mnt
-          latitude
-          longitude
-          machine_room_name
-          master_so_id
-          name
-          position_number
-          serial_number
           so_id
           sort_id
           sp_id
-          status_id
-          track_name
-          ts_completed
           ts_updated
-          type_id
-          type_name
           ts_inserted
-          vendor
-          build_year
         }
     }
     `;
@@ -228,7 +157,6 @@ export const pushServiceObject = (
 };
 export const streamServiceObject =
   (): RxGraphQLReplicationQueryBuilderResponse => {
-    setHeaders("service_object");
     const query = `
     subscription StreamServiceObject {
         streamServiceObject {
@@ -241,27 +169,11 @@ export const streamServiceObject =
             documents {
               deleted
               description
-              img_dev
-              img_mnt
-              latitude
-              longitude
-              machine_room_name
-              master_so_id
-              name
-              position_number
-              serial_number
               so_id
               sort_id
               sp_id
-              status_id
-              track_name
-              ts_completed
               ts_updated
-              type_id
-              type_name
               ts_inserted
-              vendor
-              build_year
             }
         }
     }

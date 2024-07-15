@@ -1,8 +1,13 @@
 import React, { useEffect } from "react";
 import Database from "./Database";
 import { useStore } from "@nanostores/react";
-import { $syncState } from "./store/app";
+import { $syncState, $appState } from "./store/app";
 import { useNavigate } from "react-router-dom";
+
+const initDB = async () => {
+  const db = await Database.get();
+  return db;
+};
 
 const getServicePlan = async () => {
   const db = await Database.get();
@@ -11,7 +16,6 @@ const getServicePlan = async () => {
     .where("sp_id")
     .eq("CHECKLIST_XXX_AM_2")
     .exec();
-  console.log("servicePlan", servicePlan);
   return servicePlan;
 };
 const getServiceObject = async () => {
@@ -26,7 +30,7 @@ const getServiceObject = async () => {
   return serviceObject;
 };
 
-const initDatabase = async (
+const initCurrentRecords = async (
   setCurrentServicePlan: any,
   setCurrentServiceObject: any,
   setLoaded: any,
@@ -40,7 +44,6 @@ const initDatabase = async (
   if (serviceObject) {
     setCurrentServiceObject(serviceObject);
   }
-
   setLoaded(true);
 };
 
@@ -49,18 +52,31 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   let showDataReload = syncState == "APP_RECEIVED_NEW_DATA";
   const [currentServicePlan, setCurrentServicePlan] = React.useState<any>(null);
+  const [loaded, setLoaded] = React.useState<boolean>(false);
   const [currentServiceObject, setCurrentServiceObject] =
     React.useState<any>(null);
-  const [loaded, setLoaded] = React.useState<boolean>(false);
-
-  useEffect(() => {
-    initDatabase(setCurrentServicePlan, setCurrentServiceObject, setLoaded);
-  }, []);
+  const appState = useStore($appState);
 
   const handlePageReload = () => {
     navigate(0);
   };
 
+  useEffect(() => {
+    if (appState === "INIT") {
+      initDB();
+    }
+    if (appState === "READY") {
+      initCurrentRecords(
+        setCurrentServicePlan,
+        setCurrentServiceObject,
+        setLoaded,
+      );
+    }
+  }, [appState]);
+
+  if (appState !== "READY") {
+    return <div>Loading...</div>;
+  }
   const updateServicePlan = async () => {
     const descr =
       currentServicePlan._data.description === "testx" ? "testy" : "testx";
@@ -74,8 +90,6 @@ const Home: React.FC = () => {
       },
     );
     setCurrentServicePlan(newServicePlan);
-
-    console.log(newServicePlan);
   };
 
   const updateServiceObject = async () => {
@@ -93,12 +107,7 @@ const Home: React.FC = () => {
       },
     );
     setCurrentServiceObject(newServiceObject);
-
-    console.log(newServiceObject);
   };
-
-  console.log("servplan", currentServicePlan);
-  console.log("serv object", currentServiceObject);
 
   return (
     <>

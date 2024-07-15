@@ -17,7 +17,7 @@ import { RxDBLeaderElectionPlugin } from "rxdb/plugins/leader-election";
 import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
 import { RxDBMigrationPlugin } from "rxdb/plugins/migration-schema";
 import { servicePlanSchema, serviceObjectSchema } from "./Schema";
-import { $syncState } from "./store/app";
+import { $syncState, $appState } from "./store/app";
 import {
   pullServicePlan,
   pushServicePlan,
@@ -48,12 +48,28 @@ export const startReplications = async () => {
   const replications: {
     [key: string]: RxGraphQLReplicationState<unknown, unknown>;
   } = $replications.get();
+  const replicationsSyncStates: { [key: string]: string } = {};
   if (replications) {
     Object.values(replications).forEach(async (replication) => {
       replication?.start();
       replication.received$.subscribe(() =>
         $syncState.set("APP_RECEIVED_NEW_DATA"),
       );
+      replicationsSyncStates[replication.collection.name] = "STARTED";
+
+      replication.awaitInSync().then(async () => {
+        replicationsSyncStates[replication.collection.name] = "FINISHED";
+
+        let checkAllStatesFinished = true;
+        Object.values(replicationsSyncStates).forEach((state) => {
+          if (state !== "FINISHED") {
+            checkAllStatesFinished = false;
+          }
+        });
+        if (checkAllStatesFinished) {
+          $appState.set("READY");
+        }
+      });
     });
   }
 };
@@ -111,18 +127,11 @@ const get = (forceReset: boolean = false) => {
 };
 async function initRxDB(forceReset: boolean = false) {
   const batchSize = 300;
-  const activeEmail = "m.rainer@webware.dev";
   // todo exception handling when idtokenclaims not present
   const defaultRepSettings = {
     url: {
       http: import.meta.env.VITE_API_URL,
       ws: import.meta.env.VITE_WS_API,
-    },
-    headers: {
-      // authorization: `Bearer ${accessToken}`,
-      user: JSON.stringify({
-        email: activeEmail,
-      }),
     },
     deletedField: "deleted",
     live: true,
@@ -173,12 +182,6 @@ async function initRxDB(forceReset: boolean = false) {
           if (doc.id) {
             delete doc.id;
           }
-          if (doc.position_number) {
-            doc.position_number = parseInt(doc.position_number);
-          }
-          if (doc.build_year) {
-            doc.build_year = parseInt(doc.build_year);
-          }
           return doc;
         },
       },
@@ -187,15 +190,6 @@ async function initRxDB(forceReset: boolean = false) {
         queryBuilder: pullServiceObject,
         streamQueryBuilder: streamServiceObject,
         includeWsHeaders: true,
-        modifier: (doc: unknown) => {
-          if (doc.position_number) {
-            doc.position_number = doc.position_number.toString();
-          }
-          if (doc.build_year) {
-            doc.build_year = doc.build_year.toString();
-          }
-          return doc;
-        },
       },
     },
   ];

@@ -1,0 +1,16 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+
+const AppWrapper = () => {
+  return (
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+};
+
+const root = ReactDOM.createRoot(
+  document.getElementById("root") || document.createElement("div"),
+);
+root.render(<AppWrapper />);
